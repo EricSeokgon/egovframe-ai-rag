@@ -23,6 +23,9 @@ import java.time.Duration;
  *
  * <p>{@code rag.enable-query-compression=true} 일 때만 활성화되며(기본 OFF, 기존 동작 보존),
  * 재작성에는 스트리밍이 필요 없어 동기 {@link OllamaChatModel}을 별도로 생성해 사용한다.</p>
+ *
+ * <p>재작성 결과는 {@link EgovSanitizingQueryTransformer} 를 거쳐 {@code <think>} 블록 제거와
+ * 답변형 결과 복원을 적용한 뒤 검색에 사용된다. spring-ai 모듈과 같은 안전장치다.</p>
  */
 @Slf4j
 @Configuration
@@ -69,6 +72,8 @@ public class EgovQueryCompressionConfig {
                 .timeout(timeout)
                 .build();
         log.info("질의 압축(CompressingQueryTransformer) 활성화 - model: {}", modelName);
-        return new CompressingQueryTransformer(compressionModel, COMPRESSION_PROMPT);
+        // 재작성 결과는 그대로 쓰지 않고 <think> 블록 제거·답변형 결과 복원을 거친다.
+        return new EgovSanitizingQueryTransformer(
+                new CompressingQueryTransformer(compressionModel, COMPRESSION_PROMPT));
     }
 }
